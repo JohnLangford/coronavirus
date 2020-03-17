@@ -1,0 +1,10 @@
+set term png
+set output "cumulative_cases_over_cumulative_deaths.png"
+
+set logscale x
+set logscale y
+set xlabel "cumulative cases over cumulative deaths"
+set ylabel "daily cases"
+set key bottom right
+set title "COVID-19 case progression after first death"
+plot [10:1000] "observations/China_Except_Hubei" w vectors title "China Excluding Hubei", "observations/_Korea__South_" w vectors title "South Korea", "observations/US" w vectors title "United States", "observations/Italy" w vectors title "Italy", "observations/Germany" w vectors title "Germany"
