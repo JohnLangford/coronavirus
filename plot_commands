@@ -7,4 +7,4 @@ set xlabel "cumulative cases over cumulative deaths"
 set ylabel "daily cases"
 set key bottom right
 set title "COVID-19 case progression after first death"
-plot [10:1000] "observations/China_Except_Hubei" w vectors title "China Excluding Hubei", "observations/_Korea__South_" w vectors title "South Korea", "observations/US" w vectors title "United States", "observations/Italy" w vectors title "Italy", "observations/Germany" w vectors title "Germany"
+plot [10:1000] "observations/_Korea__South_" w vectors title "South Korea", "observations/US" w vectors title "United States", "observations/Italy" w vectors title "Italy", "observations/US_New_York" w vectors title "New York, US", "observations/Germany" w vectors title "Germany", "observations/China_Except_Hubei" w vectors title "China Excluding Hubei"
