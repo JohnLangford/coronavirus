@@ -1,5 +1,4 @@
-all:	COVID-19 cases_over_mortality observations plot_commands 
-	cd COVID-19 && git pull && cd .. && gnuplot plot_commands && firefox cumulative_cases_over_cumulative_deaths.png
+all:	cumulative_cases_over_cumulative_deaths.png
 
 COVID-19:
 	git clone https://github.com/CSSEGISandData/COVID-19.git
@@ -12,3 +11,13 @@ observations:	COVID-19 cases_over_mortality COVID-19/csse_covid_19_data/csse_cov
 
 clean:
 	rm -rf COVID-19 observations cumulative_cases_over_cumulative_deaths.png cases_over_mortality *~
+
+COVID-19-pull: FORCE
+	cd COVID-19 && git pull && cd ..
+FORCE: 
+
+cumulative_cases_over_cumulative_deaths.png: COVID-19 COVID-19-pull cases_over_mortality observations plot_commands
+	gnuplot plot_commands 
+
+display: cumulative_cases_over_cumulative_deaths.png
+	firefox cumulative_cases_over_cumulative_deaths.png
