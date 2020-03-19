@@ -13,7 +13,7 @@ clean:
 	rm -rf COVID-19 observations cumulative_cases_over_cumulative_deaths.png cases_over_mortality *~
 
 COVID-19-pull: FORCE
-	cd COVID-19 && git pull && cd ..
+	cd COVID-19 && git pull --quiet && cd ..
 FORCE: 
 
 cumulative_cases_over_cumulative_deaths.png: COVID-19 COVID-19-pull cases_over_mortality observations plot_commands
