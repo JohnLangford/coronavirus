@@ -1,4 +1,4 @@
-all:	cumulative_cases_over_cumulative_deaths.png
+all:	recent_mortality_by_county cumulative_cases_over_cumulative_deaths.png
 
 COVID-19:
 	git clone https://github.com/CSSEGISandData/COVID-19.git
@@ -8,6 +8,9 @@ cases_over_mortality: cases_over_mortality.cc
 
 observations:	COVID-19 cases_over_mortality COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv
 	mkdir -p observations && cd observations && ../cases_over_mortality ../COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv ../COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv
+
+recent_mortality_by_county: recent_mortality_by_county.cc
+	g++ -Wall -g recent_mortality_by_county.cc -o recent_mortality_by_county
 
 clean:
 	rm -rf COVID-19 observations cumulative_cases_over_cumulative_deaths.png cases_over_mortality *~
