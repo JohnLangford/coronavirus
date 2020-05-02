@@ -113,6 +113,16 @@ vector<case_series> parse_series(char* file)
   return all_series;
 }
 
+int estimated_cases(case_series c)
+{
+  return 100*max(1,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-8]));
+}
+
+bool compare_pop_over_fatality(case_series i1, case_series i2)
+{
+  return i1.population / (float) estimated_cases(i1) < i2.population / (float) estimated_cases(i2);
+}
+
 void print_case_series(case_series& c)
 {
   if (c.county != "")
@@ -133,10 +143,15 @@ int main(int argc, char* argv[])
 
   vector<case_series> death_cumulatives = parse_series(argv[1]);
 
+  sort(death_cumulatives.begin(), death_cumulatives.end(), compare_pop_over_fatality);
+  
   cout << "county,state,population,last_week_deaths,population/deaths(min 1)" << endl;
   for (case_series c : death_cumulatives)
     {
+      if (c.county.size() == 0 || c.county.find("Out_of_") != string::npos || c.county.find("Unassigned") != string::npos)
+	continue;
+      
       int last_week_deaths = max(0,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-8]));
-      cout << c.county << "," << c.state << ',' << c.population << ',' <<  last_week_deaths << "," << (float) c.population / (float) max (1,last_week_deaths) << endl;
+      cout << c.county << "," << c.state << ',' << c.population << ',' <<  last_week_deaths << "," << (float) c.population / (float) estimated_cases(c) << endl;
     }
 }
