@@ -1,4 +1,4 @@
-all:	recent_mortality_by_county cumulative_cases_over_cumulative_deaths.png
+all:	active_estimate_by_county.csv recent_mortality_by_county cumulative_cases_over_cumulative_deaths.png
 
 COVID-19:
 	git clone https://github.com/CSSEGISandData/COVID-19.git
@@ -11,6 +11,9 @@ observations:	COVID-19 cases_over_mortality COVID-19/csse_covid_19_data/csse_cov
 
 recent_mortality_by_county: recent_mortality_by_county.cc
 	g++ -Wall -g recent_mortality_by_county.cc -o recent_mortality_by_county
+
+active_estimate_by_county.csv: recent_mortality_by_county
+	./recent_mortality_by_county COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv cbsatocountycrosswalk.csv > temp.csv && head -n 1 temp.csv > $@ && tail -n +2 temp.csv | sort -n -r -t ',' -k 5 >> $@
 
 clean:
 	rm -rf COVID-19 observations cumulative_cases_over_cumulative_deaths.png cases_over_mortality *~

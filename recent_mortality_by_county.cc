@@ -3,6 +3,7 @@
 #include<vector>
 #include<strings.h>
 #include<algorithm>
+#include<unordered_map>
 #include<string>
 #include<fstream>
 
@@ -14,6 +15,76 @@ struct case_series {
   size_t population;
   vector<float> counts;
 };
+
+unordered_map<string,string> state_abbreviations;
+
+void upper_case(string& input)
+{
+  for(unsigned int i=0;i<input.length();i++)
+    input[i] = toupper(input[i]);
+}
+   
+void add_abbrev(string state, string abbrev)
+{
+  upper_case(state);
+  state_abbreviations.emplace(state,abbrev);
+}
+
+void intialize_abbreviations()
+{
+  add_abbrev("Alabama","AL");
+  add_abbrev("Alaska","AK");
+  add_abbrev("Arizona","AZ");
+  add_abbrev("Arkansas","AR");
+  add_abbrev("California","CA");
+  add_abbrev("Colorado","CO");
+  add_abbrev("Connecticut","CT");
+  add_abbrev("Delaware","DE");
+  add_abbrev("Florida","FL");
+  add_abbrev("Georgia","GA");
+  add_abbrev("Hawaii","HI");
+  add_abbrev("Idaho","ID");
+  add_abbrev("Illinois","IL");
+  add_abbrev("Indiana","IN");
+  add_abbrev("Iowa","IA");
+  add_abbrev("Kansas","KS");
+  add_abbrev("Kentucky","KY");
+  add_abbrev("Louisiana","LA");
+  add_abbrev("Maine","ME");
+  add_abbrev("Maryland","MD");
+  add_abbrev("Massachusetts","MA");
+  add_abbrev("Michigan","MI");
+  add_abbrev("Minnesota","MN");
+  add_abbrev("Mississippi","MS");
+  add_abbrev("Missouri","MO");
+  add_abbrev("Montana","MT");
+  add_abbrev("Nebraska","NE");
+  add_abbrev("Nevada","NV");
+  add_abbrev("New_Hampshire","NH");
+  add_abbrev("New_Jersey","NJ");
+  add_abbrev("New_Mexico","NM");
+  add_abbrev("New_York","NY");
+  add_abbrev("North_Carolina","NC");
+  add_abbrev("North_Dakota","ND");
+  add_abbrev("Ohio","OH");
+  add_abbrev("Oklahoma","OK");
+  add_abbrev("Oregon","OR");
+  add_abbrev("Pennsylvania","PA");
+  add_abbrev("Rhode_Island","RI");
+  add_abbrev("South_Carolina","SC");
+  add_abbrev("South_Dakota","SD");
+  add_abbrev("Tennessee","TN");
+  add_abbrev("Texas","TX");
+  add_abbrev("Utah","UT");
+  add_abbrev("Vermont","VT");
+  add_abbrev("Virginia","VA");
+  add_abbrev("Washington","WA");
+  add_abbrev("West_Virginia","WV");
+  add_abbrev("Wisconsin","WI");
+  add_abbrev("Wyoming","WY");
+  add_abbrev("District_of_Columbia","DC");
+  add_abbrev("Marshall_Islands","MH");
+}
 
 void clean_entry(char *start, char* end, char val)
 {
@@ -32,6 +103,7 @@ string parse_next_entry(char*& after_last_comma)
   if (*parse_start == '"')//eat any quoted characters which may include comma
     {
       *parse_start = '_';
+      after_last_comma++;
       char* next_quote = index(parse_start+1, '"');
       clean_entry(parse_start, next_quote, ',');
       clean_entry(parse_start, next_quote, ' ');
@@ -42,6 +114,8 @@ string parse_next_entry(char*& after_last_comma)
   if (next_comma != nullptr)
     {
       *next_comma = '\0';
+      if (next_comma > after_last_comma && *(next_comma-1)== '_')
+	*(next_comma-1)='\0';
       clean_entry(parse_start, next_comma, ' ');
       clean_entry(parse_start, next_comma, '*');
       ret = after_last_comma;
@@ -76,6 +150,7 @@ vector<case_series> parse_series(char* file)
       while (after_last_comma != nullptr)
 	{
 	  string parsed = parse_next_entry(after_last_comma);
+	  upper_case(parsed);
 	  switch (item)
 	    {
 	    case 0:
@@ -88,7 +163,7 @@ vector<case_series> parse_series(char* file)
 	      s.county = parsed;
 	      break;
 	    case 6:
-	      s.state = parsed;
+	      s.state = state_abbreviations[parsed];
 	      break;
 	    case 7:
 	    case 8:
@@ -133,25 +208,106 @@ void print_case_series(case_series& c)
   cout << endl;
 }
 
+string county_state(string& county, string& state)
+{
+  return county + "," + state;
+}
+
+unordered_map<string,string> parse_county_msa(char* file)
+{
+  FILE* file_pointer = fopen(file, "r");
+  if (file_pointer == nullptr)
+    {
+      perror("fopen");
+      exit(EXIT_FAILURE);
+    }
+
+  unordered_map<string,string> county_msas;
+  char* line = nullptr;
+  size_t len = 0;
+  ssize_t nread = getline(&line, &len, file_pointer);
+  while ((nread = getline(&line, &len, file_pointer)) != -1)
+    {
+      string county;
+      string state;
+      string msa;
+      char* after_last_comma = line;
+      int item=0;
+      while (after_last_comma != nullptr)
+	{
+	  string parsed = parse_next_entry(after_last_comma);
+	  switch (item)
+	    {
+	    case 0:
+	      county=parsed;
+	      break;
+	    case 1:
+	      state=parsed;
+	      break;
+	    case 2:
+	    case 3:
+	    case 4:
+	    case 5:
+	      break;
+	    case 6:
+	      msa = parsed;
+	      break;
+	    }
+	  item++;
+	}
+      county_msas[county_state(county,state)]= msa;
+    }
+  fclose(file_pointer);
+  free(line);
+
+  return county_msas;
+}
+
+struct msa_state {
+  string msa;
+  size_t population;
+  size_t mortality;
+};
+
 int main(int argc, char* argv[])
 {
   if (argc < 2)
     {
-      cout << "usage: recent_mortality_by_county COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv" << endl;
+      cout << "usage: recent_mortality_by_county COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv cbsatocountycrosswalk.csv" << endl;
       exit (0);
     }
 
+  intialize_abbreviations();
+  
   vector<case_series> death_cumulatives = parse_series(argv[1]);
 
-  sort(death_cumulatives.begin(), death_cumulatives.end(), compare_pop_over_fatality);
+  unordered_map<string,string> county_msas = parse_county_msa(argv[2]);
   
-  cout << "county,state,population,last_week_deaths,population/deaths(min 1)" << endl;
-  for (case_series c : death_cumulatives)
+  unordered_map<string,msa_state> msa_cumulatives;
+  for (case_series c: death_cumulatives)//need to map counties to MSAs
     {
-      if (c.county.size() == 0 || c.county.find("Out_of_") != string::npos || c.county.find("Unassigned") != string::npos)
-	continue;
+      string msa;
+      if (county_msas.find(county_state(c.county,c.state)) == county_msas.end())
+	{
+	  cerr << "can not find msa for " << county_state(c.county,c.state) << endl;
+	  continue;
+	}
+      msa = county_msas[county_state(c.county,c.state)];
       
-      int last_week_deaths = max(0,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-8]));
-      cout << c.county << "," << c.state << ',' << c.population << ',' <<  last_week_deaths << "," << (float) c.population / (float) estimated_cases(c) << endl;
+      if (msa_cumulatives.find(msa)==msa_cumulatives.end())
+	{
+	  msa_state s = {msa,0,0};
+	  msa_cumulatives.emplace(msa,s);
+	}
+      msa_cumulatives[msa].population += c.population;
+      msa_cumulatives[msa].mortality += max(0,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-8]));
+    }
+
+  cout << "MSA,population,last_week_deaths,estimated_cases,population/estimated_cases(min 100)" << endl;
+  for (auto c : msa_cumulatives)
+    {
+      size_t estimated_cases = max((size_t)1,c.second.mortality)*100;
+      
+      cout << c.first << ',' << c.second.population << ',' <<  c.second.mortality << "," << estimated_cases << "," << (float) c.second.population / (float) estimated_cases << endl;
     }
 }
