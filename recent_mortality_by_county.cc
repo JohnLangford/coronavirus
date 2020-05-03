@@ -311,7 +311,10 @@ int main(int argc, char* argv[])
     }
   cerr << "deaths not assigned to MSA = " << missing_deaths << endl;
   cerr << "population not assigned to MSA = " << missing_population << endl;
-  
+
+  size_t total_fast_tests =0;
+  size_t max_fast_tests_per_day =0;
+  size_t total_population_accounted =0;
   cout << "MSA,population,last_week_deaths,estimated_active_cases(min 50),estimated_cases_per_day,fast_tests_per_day,initial_active_tracers,tests_to_clear,population/estimated_cases" << endl;
   for (auto c : msa_cumulatives)
     {
@@ -320,7 +323,9 @@ int main(int argc, char* argv[])
       size_t fast_tests_per_day = estimated_cases_per_day * 20;
       size_t initial_active_tracers = estimated_cases_per_day*5;
       size_t tests_to_clear = estimated_cases*100;
-	
+      total_fast_tests += tests_to_clear;
+      total_population_accounted += c.second.population;
+      max_fast_tests_per_day = max(max_fast_tests_per_day, fast_tests_per_day);
       cout << c.first
 	   << ',' << c.second.population
 	   << ',' <<  c.second.mortality
@@ -331,4 +336,7 @@ int main(int argc, char* argv[])
 	   << ',' << tests_to_clear
 	   << ',' << (float) c.second.population / (float) estimated_cases << endl;
     }
+  cerr << "total fast tests = " << total_fast_tests << endl;
+  cerr << "total population covered = " << total_population_accounted << endl;
+  cerr << "max fast tests per day = " << max_fast_tests_per_day << endl;
 }
