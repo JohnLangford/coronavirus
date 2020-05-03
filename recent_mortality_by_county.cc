@@ -7,6 +7,8 @@
 #include<string>
 #include<fstream>
 
+#define DAYS 7
+
 using namespace std;
 
 struct case_series {
@@ -190,7 +192,7 @@ vector<case_series> parse_series(char* file)
 
 int estimated_cases(case_series c)
 {
-  return 100*max(1,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-8]));
+  return 100*max(1,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-1-DAYS]));
 }
 
 bool compare_pop_over_fatality(case_series i1, case_series i2)
@@ -284,12 +286,17 @@ int main(int argc, char* argv[])
   unordered_map<string,string> county_msas = parse_county_msa(argv[2]);
   
   unordered_map<string,msa_state> msa_cumulatives;
+  size_t missing_deaths =0;
+  size_t missing_population=0;
   for (case_series c: death_cumulatives)//need to map counties to MSAs
     {
       string msa;
       if (county_msas.find(county_state(c.county,c.state)) == county_msas.end())
 	{
-	  cerr << "can not find msa for " << county_state(c.county,c.state) << endl;
+	  missing_deaths+= max(0,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-1-DAYS]));
+	  missing_population+=c.population;
+	  if (c.county.find("OUT_OF_")==string::npos && c.county.find("UNASSIGNED")==string::npos && c.county.length() != 0)
+	    cerr << "can not find msa for " << county_state(c.county,c.state) << endl;
 	  continue;
 	}
       msa = county_msas[county_state(c.county,c.state)];
@@ -300,14 +307,28 @@ int main(int argc, char* argv[])
 	  msa_cumulatives.emplace(msa,s);
 	}
       msa_cumulatives[msa].population += c.population;
-      msa_cumulatives[msa].mortality += max(0,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-8]));
+      msa_cumulatives[msa].mortality += max(0,(int)(c.counts[c.counts.size()-1] - c.counts[c.counts.size()-1-DAYS]));
     }
-
-  cout << "MSA,population,last_week_deaths,estimated_cases,population/estimated_cases(min 100)" << endl;
+  cerr << "deaths not assigned to MSA = " << missing_deaths << endl;
+  cerr << "population not assigned to MSA = " << missing_population << endl;
+  
+  cout << "MSA,population,last_week_deaths,estimated_active_cases(min 50),estimated_cases_per_day,fast_tests_per_day,initial_active_tracers,tests_to_clear,population/estimated_cases" << endl;
   for (auto c : msa_cumulatives)
     {
-      size_t estimated_cases = max((size_t)1,c.second.mortality)*100;
-      
-      cout << c.first << ',' << c.second.population << ',' <<  c.second.mortality << "," << estimated_cases << "," << (float) c.second.population / (float) estimated_cases << endl;
+      size_t estimated_cases = max((size_t)50,c.second.mortality*100);
+      size_t estimated_cases_per_day = estimated_cases / DAYS;
+      size_t fast_tests_per_day = estimated_cases_per_day * 20;
+      size_t initial_active_tracers = estimated_cases_per_day*5;
+      size_t tests_to_clear = estimated_cases*100;
+	
+      cout << c.first
+	   << ',' << c.second.population
+	   << ',' <<  c.second.mortality
+	   << ',' << estimated_cases
+	   << ',' << estimated_cases_per_day
+	   << ',' << fast_tests_per_day
+	   << ',' << initial_active_tracers
+	   << ',' << tests_to_clear
+	   << ',' << (float) c.second.population / (float) estimated_cases << endl;
     }
 }
